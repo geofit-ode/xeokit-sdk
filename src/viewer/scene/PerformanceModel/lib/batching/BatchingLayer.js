@@ -810,6 +810,24 @@ class BatchingLayer {
         }
     }
 
+    drawPickVertexOcclusion(frameCtx) {
+        if (this._numVisibleLayerPortions === 0) {
+            return;
+        }
+        if (this._batchingRenderers.pickVertexOcclusionRenderer) {
+            this._batchingRenderers.pickVertexOcclusionRenderer.drawLayer(frameCtx, this);
+        }
+    }
+
+    drawPickVertex(frameCtx, axis) {
+        if (this._numVisibleLayerPortions === 0) {
+            return;
+        }
+        if (this._batchingRenderers.pickVertexRenderer) {
+            this._batchingRenderers.pickVertexRenderer.drawLayer(frameCtx, this, axis);
+        }
+    }
+
     //---- OCCLUSION TESTING -------------------------------------------------------------------------------------------
 
     drawOcclusion(frameCtx) {

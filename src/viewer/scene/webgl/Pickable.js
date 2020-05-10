@@ -47,6 +47,19 @@ class Pickable {
     drawPickDepths(frameCtx) {
     }
 
+
+    /**
+     * Called by xeokit to get if it's possible to pick a vertex of this Drawable.
+     */
+    canPickVertex() {
+    }
+
+    /**
+     * Picks a vertex on this Drawable.
+     */
+    drawPickVertex(frameCtx, axis) {
+    }
+
     /**
      * Delegates an {@link Entity} as representing what was actually picked in place of this Pickable.
      * @returns {PerformanceNode}

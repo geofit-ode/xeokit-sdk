@@ -4,9 +4,11 @@ import {InstancingEdgesRenderer} from "./emphasis/InstancingEdgesRenderer.js";
 import {InstancingPickMeshRenderer} from "./pick/InstancingPickMeshRenderer.js";
 import {InstancingPickDepthRenderer} from "./pick/InstancingPickDepthRenderer.js";
 import {InstancingPickNormalsRenderer} from "./pick/InstancingPickNormalsRenderer.js";
+import {InstancingPickVertexRenderer} from "./pick/InstancingPickVertexRenderer.js";
 import {InstancingOcclusionRenderer} from "./occlusion/InstancingOcclusionRenderer.js";
 import {InstancingDepthRenderer} from "./depth/InstancingDepthRenderer.js";
 import {InstancingNormalsRenderer} from "./normals/InstancingNormalsRenderer.js";
+import {InstancingPickVertexOcclusionRenderer} from "./pick/InstancingPickVertexOcclusionRenderer.js";
 
 /**
  * @private
@@ -50,6 +52,14 @@ class InstancingRenderers {
             this.pickDepthRenderer.destroy();
             this.pickDepthRenderer = null;
         }
+        if (this.pickVertexOcclusionRenderer && (!this.pickVertexOcclusionRenderer.getValid())) {
+            this.pickVertexOcclusionRenderer.destroy();
+            this.pickVertexOcclusionRenderer = null;
+        }
+        if (this.pickVertexRenderer && (!this.pickVertexRenderer.getValid())) {
+            this.pickVertexRenderer.destroy();
+            this.pickVertexRenderer = null;
+        }
         if (this.pickNormalsRenderer && (!this.pickNormalsRenderer.getValid())) {
             this.pickNormalsRenderer.destroy();
             this.pickNormalsRenderer = null;
@@ -84,6 +94,12 @@ class InstancingRenderers {
         if (!this.pickNormalsRenderer) {
             this.pickNormalsRenderer = new InstancingPickNormalsRenderer(this._scene);
         }
+        if (!this.pickVertexOcclusionRenderer) {
+            this.pickVertexOcclusionRenderer = new InstancingPickVertexOcclusionRenderer(this._scene);
+        }
+        if (!this.pickVertexRenderer) {
+            this.pickVertexRenderer = new InstancingPickVertexRenderer(this._scene);
+        }
         if (!this.occlusionRenderer) {
             this.occlusionRenderer = new InstancingOcclusionRenderer(this._scene);
         }
@@ -105,6 +121,8 @@ class InstancingRenderers {
         this.pickMeshRenderer.destroy();
         this.pickDepthRenderer.destroy();
         this.pickNormalsRenderer.destroy();
+        this.pickVertexOcclusionRenderer.destroy();
+        this.pickVertexRenderer.destroy();
         this.occlusionRenderer.destroy();
     }
 }
@@ -120,7 +138,7 @@ function getInstancingRenderers(scene) {
         instancingRenderers = new InstancingRenderers(scene);
         sceneInstancingRenderers[sceneId] = instancingRenderers;
         instancingRenderers._compile();
-        scene.on("compile", () => {
+        scene.on("compiling", () => {
             instancingRenderers._compile();
         });
         scene.on("destroyed", () => {

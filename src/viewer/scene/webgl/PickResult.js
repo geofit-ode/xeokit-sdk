@@ -34,6 +34,18 @@ class PickResult {
          */
         this.primIndex = -1;
 
+        /** True when a point on a surface was picked.
+         *
+         * @type {boolean}
+         */
+        this.pickSurface = false;
+
+        /** True when a vertex was picked.
+         *
+         * @type {boolean}
+         */
+        this.pickVertex = false;
+
         this._canvasPos = new Int16Array([0, 0]);
         this._origin = new Float32Array([0, 0, 0]);
         this._direction = new Float32Array([0, 0, 0]);
@@ -118,7 +130,7 @@ class PickResult {
             this._gotDirection = false;
         }
     }
-    
+
     /**
      * Picked triangle's vertex indices.
      * Only defined when an entity and triangle was picked.
@@ -170,8 +182,11 @@ class PickResult {
     }
 
     /**
-     * Picked World-space point on surface.
-     * Only defined when an entity and a point on its surface was picked.
+     * Picked World-space position.
+     *
+     * This is a surface position when {@link PickResult#pickSurface} is ````true````, or a vertex
+     * position when {@link PickResult#pickVertex} is ````true````.
+     *
      * @property worldPos
      * @type {Number[]}
      */
@@ -195,8 +210,11 @@ class PickResult {
     }
 
     /**
-     * Picked View-space point on surface.
-     * Only defined when an entity and a point on its surface was picked.
+     * Picked View-space position.
+     *
+     * This is a surface position when {@link PickResult#pickSurface} is ````true````, or a vertex
+     * position when {@link PickResult#pickVertex} is ````true````.
+
      * @property viewPos
      * @type {Number[]}
      */
@@ -246,7 +264,9 @@ class PickResult {
 
     /**
      * Normal vector at picked position on surface.
-     * Only defined when an entity and a point on its surface was picked.
+     *
+     * This is only available when {@link PickResult#pickSurface} is ````true````.
+     *
      * @property worldNormal
      * @type {Number[]}
      */
@@ -271,7 +291,9 @@ class PickResult {
 
     /**
      * UV coordinates at picked position on surface.
-     * Only defined when an entity and a point on its surface was picked.
+     *
+     * This is only available when {@link PickResult#pickSurface} is ````true````.
+     *
      * @property uv
      * @type {Number[]}
      */
@@ -298,6 +320,8 @@ class PickResult {
      * @param value
      */
     reset() {
+        this.pickSurface = false;
+        this.pickVertex = false;
         this.entity = null;
         this.primIndex = -1;
         this.primitive = null;

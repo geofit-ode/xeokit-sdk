@@ -773,6 +773,24 @@ class InstancingLayer {
         }
     }
 
+    drawPickVertexOcclusion(frameCtx) {
+        if (this._numVisibleLayerPortions === 0) {
+            return;
+        }
+        if (this._instancingRenderers.pickVertexOcclusionRenderer) {
+            this._instancingRenderers.pickVertexOcclusionRenderer.drawLayer(frameCtx, this);
+        }
+    }
+
+    drawPickVertex(frameCtx, axis) {
+        if (this._numVisibleLayerPortions === 0) {
+            return;
+        }
+        if (this._instancingRenderers.pickVertexRenderer) {
+            this._instancingRenderers.pickVertexRenderer.drawLayer(frameCtx, this, axis);
+        }
+    }
+
     //---- OCCLUSION TESTING -------------------------------------------------------------------------------------------
 
     drawOcclusion(frameCtx) {

@@ -4,9 +4,11 @@ import {BatchingEdgesRenderer} from "./emphasis/BatchingEdgesRenderer.js";
 import {BatchingPickMeshRenderer} from "./pick/BatchingPickMeshRenderer.js";
 import {BatchingPickDepthRenderer} from "./pick/BatchingPickDepthRenderer.js";
 import {BatchingPickNormalsRenderer} from "./pick/BatchingPickNormalsRenderer.js";
+import {BatchingPickVertexRenderer} from "../batching/pick/BatchingPickVertexRenderer.js";
 import {BatchingOcclusionRenderer} from "./occlusion/BatchingOcclusionRenderer.js";
 import {BatchingDepthRenderer} from "./depth/BatchingDepthRenderer.js";
 import {BatchingNormalsRenderer} from "./normals/BatchingNormalsRenderer.js";
+import {BatchingPickVertexOcclusionRenderer} from "./pick/BatchingPickVertexOcclusionRenderer.js";
 
 /**
  * @private
@@ -54,6 +56,14 @@ class BatchingRenderers {
             this.pickNormalsRenderer.destroy();
             this.pickNormalsRenderer = null;
         }
+        if (this.pickVertexOcclusionRenderer && (!this.pickVertexOcclusionRenderer.getValid())) {
+            this.pickVertexOcclusionRenderer.destroy();
+            this.pickVertexOcclusionRenderer = null;
+        }
+        if (this.pickVertexRenderer && (!this.pickVertexRenderer.getValid())) {
+            this.pickVertexRenderer.destroy();
+            this.pickVertexRenderer = null;
+        }
         if (this.occlusionRenderer && this.occlusionRenderer.getValid() === false) {
             this.occlusionRenderer.destroy();
             this.occlusionRenderer = null;
@@ -90,6 +100,12 @@ class BatchingRenderers {
         if (!this.depthRenderer) {
             this.depthRenderer = new BatchingDepthRenderer(this._scene);
         }
+        if (!this.pickVertexOcclusionRenderer) {
+            this.pickVertexOcclusionRenderer = new BatchingPickVertexOcclusionRenderer(this._scene);
+        }
+        if (!this.pickVertexRenderer) {
+            this.pickVertexRenderer = new BatchingPickVertexRenderer(this._scene);
+        }
         if (!this.normalsRenderer) {
             this.normalsRenderer = new BatchingNormalsRenderer(this._scene);
         }
@@ -105,6 +121,8 @@ class BatchingRenderers {
         this.pickMeshRenderer.destroy();
         this.pickDepthRenderer.destroy();
         this.pickNormalsRenderer.destroy();
+        this.pickVertexOcclusionRenderer.destroy();
+        this.pickVertexRenderer.destroy();
         this.occlusionRenderer.destroy();
     }
 }

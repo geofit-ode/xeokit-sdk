@@ -1468,6 +1468,26 @@ class PerformanceModel extends Component {
         }
     }
 
+    /** @private */
+    drawPickVertexOcclusion(frameCtx) {
+        if (this.numVisibleLayerPortions === 0) {
+            return;
+        }
+        for (var i = 0, len = this._layerList.length; i < len; i++) {
+            this._layerList[i].drawPickVertexOcclusion(frameCtx);
+        }
+    }
+
+    /** @private */
+    drawPickVertex(frameCtx, axis) {
+        if (this.numVisibleLayerPortions === 0) {
+            return;
+        }
+        for (var i = 0, len = this._layerList.length; i < len; i++) {
+            this._layerList[i].drawPickVertex(frameCtx, axis);
+        }
+    }
+
     /**
      * @private
      */

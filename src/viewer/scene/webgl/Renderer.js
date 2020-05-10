@@ -412,7 +412,7 @@ const Renderer = function (scene, options) {
         const renderFlags = new RenderFlags();
 
         return function (params) {
-
+return;
             if (WEBGL_INFO.SUPPORTED_EXTENSIONS["OES_element_index_uint"]) {  // In case context lost/recovered
                 gl.getExtension("OES_element_index_uint");
             }
@@ -779,6 +779,7 @@ const Renderer = function (scene, options) {
             let pickProjMatrix = null;
 
             pickResult.pickSurface = params.pickSurface;
+            pickResult.pickVertex = params.pickVertex;
 
             if (params.canvasPos) {
 
@@ -817,37 +818,138 @@ const Renderer = function (scene, options) {
                 canvasY = canvas.clientHeight * 0.5;
             }
 
-            pickBuffer.bind();
+       //     pickBuffer.bind();
 
-            const pickable = pickPickable(canvasX, canvasY, pickViewMatrix, pickProjMatrix, params);
+            if (params.pickVertex) {
 
-            if (!pickable) {
-                pickBuffer.unbind();
-                return null;
-            }
+                // We only pick vertices as part of snap-to-vertex functionality. Therefore, when picking
+                // a vertex, we don't get the entity, since we're only interested in the vertex position.
 
-            if (params.pickSurface) {
+                pickVertex(canvasX, canvasY, pickViewMatrix, pickProjMatrix, params, pickResult)
 
-                if (pickable.canPickTriangle && pickable.canPickTriangle()) {
-                    pickTriangle(pickable, canvasX, canvasY, pickViewMatrix, pickProjMatrix, pickResult);
-                    pickable.pickTriangleSurface(pickViewMatrix, pickProjMatrix, pickResult);
+            } else {
 
-                } else {
+                const pickable = pickPickable(canvasX, canvasY, pickViewMatrix, pickProjMatrix, params);
 
-                    if (pickable.canPickWorldPos && pickable.canPickWorldPos()) {
-                        pickWorldPos(pickable, canvasX, canvasY, pickViewMatrix, pickProjMatrix, pickResult);
-                        pickWorldNormal(pickable, canvasX, canvasY, pickViewMatrix, pickProjMatrix, pickResult);
+                if (!pickable) {
+                    pickBuffer.unbind();
+                    return null;
+                }
+
+                if (params.pickSurface) {
+
+                    if (pickable.canPickTriangle && pickable.canPickTriangle()) {
+                        pickTriangle(pickable, canvasX, canvasY, pickViewMatrix, pickProjMatrix, pickResult);
+                        pickable.pickTriangleSurface(pickViewMatrix, pickProjMatrix, pickResult);
+
+                    } else {
+
+                        if (pickable.canPickWorldPos && pickable.canPickWorldPos()) {
+                            pickWorldPos(pickable, canvasX, canvasY, pickViewMatrix, pickProjMatrix, pickResult);
+                            pickWorldNormal(pickable, canvasX, canvasY, pickViewMatrix, pickProjMatrix, pickResult);
+                        }
                     }
                 }
+
+             //   pickBuffer.unbind();
+
+                pickResult.entity = (pickable.delegatePickedEntity) ? pickable.delegatePickedEntity() : pickable;
             }
-
-            pickBuffer.unbind();
-
-            pickResult.entity = (pickable.delegatePickedEntity) ? pickable.delegatePickedEntity() : pickable;
 
             return pickResult;
         };
     })();
+
+    function pickVertex(canvasX, canvasY, pickViewMatrix, pickProjMatrix, params, pickResult) {
+
+        frameCtx.reset();
+        frameCtx.frontface = true; // "ccw"
+        frameCtx.pickViewMatrix = pickViewMatrix;
+        frameCtx.pickProjMatrix = pickProjMatrix;
+        frameCtx.pickInvisible = !!params.pickInvisible;
+
+        gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
+        gl.clearColor(0, 0, 0, 0);
+        gl.enable(gl.DEPTH_TEST);
+        gl.enable(gl.CULL_FACE);
+        gl.disable(gl.BLEND);
+        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+        drawPickVertexOcclusion(pickViewMatrix, pickProjMatrix, params);
+
+        const x = pickVertexAxis(canvasX, canvasY, pickViewMatrix, pickProjMatrix, params, 0);
+        const y = pickVertexAxis(canvasX, canvasY, pickViewMatrix, pickProjMatrix, params, 1);
+        const z = pickVertexAxis(canvasX, canvasY, pickViewMatrix, pickProjMatrix, params, 2);
+
+        const viewPos = math.vec3(); // TODO: cache this
+
+        viewPos[0] = x;
+        viewPos[1] = y;
+        viewPos[2] = z;
+
+        pickResult.viewPos = viewPos;
+
+        // TODO: Derive canvasPos & worldPos from viewPos
+    }
+
+    function drawPickVertexOcclusion(pickViewMatrix, pickProjMatrix, params) {
+
+        for (let type in drawableTypeInfo) {
+            if (drawableTypeInfo.hasOwnProperty(type)) {
+
+                const drawableInfo = drawableTypeInfo[type];
+                const drawableList = drawableInfo.drawableList;
+
+                for (let i = 0, len = drawableList.length; i < len; i++) {
+
+                    const drawable = drawableList[i];
+
+                    if (!drawable.drawPickVertexOcclusion || drawable.culled === true || drawable.visible === false) {
+                        continue;
+                    }
+
+                    drawable.drawPickVertexOcclusion(frameCtx);
+                }
+            }
+        }
+    }
+
+    function pickVertexAxis(canvasX, canvasY, pickViewMatrix, pickProjMatrix, params, axis) {
+
+        const includeEntityIds = params.includeEntityIds;
+        const excludeEntityIds = params.excludeEntityIds;
+
+        for (let type in drawableTypeInfo) {
+            if (drawableTypeInfo.hasOwnProperty(type)) {
+
+                const drawableInfo = drawableTypeInfo[type];
+                const drawableList = drawableInfo.drawableList;
+
+                for (let i = 0, len = drawableList.length; i < len; i++) {
+
+                    const drawable = drawableList[i];
+
+                    if (!drawable.drawPickVertex || drawable.culled === true || (params.pickInvisible !== true && drawable.visible === false) || drawable.pickable === false) {
+                        continue;
+                    }
+                    if (includeEntityIds && !includeEntityIds[drawable.id]) { // TODO: push this logic into drawable
+                        continue;
+                    }
+                    if (excludeEntityIds && excludeEntityIds[drawable.id]) {
+                        continue;
+                    }
+
+                    drawable.drawPickVertex(frameCtx, axis);
+                }
+            }
+        }
+
+         const rgba = pickBuffer.read(Math.round(canvasX), Math.round(canvasY));
+        //
+        // const axisValue = unpackFloat(rgba);
+        //
+        // return axisValue;
+    }
 
     function pickPickable(canvasX, canvasY, pickViewMatrix, pickProjMatrix, params) {
 
@@ -896,8 +998,8 @@ const Renderer = function (scene, options) {
             }
         }
 
-        const pix = pickBuffer.read(Math.round(canvasX), Math.round(canvasY));
-        let pickID = pix[0] + (pix[1] * 256) + (pix[2] * 256 * 256) + (pix[3] * 256 * 256 * 256);
+        const rgba = pickBuffer.read(Math.round(canvasX), Math.round(canvasY));
+        let pickID = rgba[0] + (rgba[1] * 256) + (rgba[2] * 256 * 256) + (rgba[3] * 256 * 256 * 256);
 
         if (pickID < 0) {
             return;
@@ -931,9 +1033,9 @@ const Renderer = function (scene, options) {
 
         pickable.drawPickTriangles(frameCtx);
 
-        const pix = pickBuffer.read(canvasX, canvasY);
+        const rgba = pickBuffer.read(canvasX, canvasY);
 
-        let primIndex = pix[0] + (pix[1] * 256) + (pix[2] * 256 * 256) + (pix[3] * 256 * 256 * 256);
+        let primIndex = rgba[0] + (rgba[1] * 256) + (rgba[2] * 256 * 256) + (rgba[3] * 256 * 256 * 256);
 
         primIndex *= 3; // Convert from triangle number to first vertex in indices
 
@@ -968,9 +1070,9 @@ const Renderer = function (scene, options) {
 
             pickable.drawPickDepths(frameCtx); // Draw color-encoded fragment screen-space depths
 
-            const pix = pickBuffer.read(Math.round(canvasX), Math.round(canvasY));
+            const rgba = pickBuffer.read(Math.round(canvasX), Math.round(canvasY));
 
-            const screenZ = unpackDepth(pix); // Get screen-space Z at the given canvas coords
+            const screenZ = unpackFloat(rgba); // Get screen-space Z at the given canvas coords
 
             // Calculate clip space coordinates, which will be in range of x=[-1..1] and y=[-1..1], with y=(+1) at top
             var x = (canvasX - canvas.width / 2) / (canvas.width / 2);
@@ -1001,8 +1103,8 @@ const Renderer = function (scene, options) {
         }
     })();
 
-    function unpackDepth(depthZ) {
-        var vec = [depthZ[0] / 256.0, depthZ[1] / 256.0, depthZ[2] / 256.0, depthZ[3] / 256.0];
+    function unpackFloat(rgba) {     // TODO: compatible with vertex picking shaders?
+        var vec = [rgba[0] / 256.0, rgba[1] / 256.0, rgba[2] / 256.0, rgba[3] / 256.0];
         var bitShift = [1.0 / (256.0 * 256.0 * 256.0), 1.0 / (256.0 * 256.0), 1.0 / 256.0, 1.0];
         return math.dotVec4(vec, bitShift);
     }
@@ -1025,9 +1127,9 @@ const Renderer = function (scene, options) {
 
         pickable.drawPickNormals(frameCtx); // Draw color-encoded fragment World-space normals
 
-        const pix = pickBuffer.read(Math.round(canvasX), Math.round(canvasY));
+        const rgba = pickBuffer.read(Math.round(canvasX), Math.round(canvasY));
 
-        const worldNormal = [(pix[0] / 256.0) - 0.5, (pix[1] / 256.0) - 0.5, (pix[2] / 256.0) - 0.5];
+        const worldNormal = [(rgba[0] / 256.0) - 0.5, (rgba[1] / 256.0) - 0.5, (rgba[2] / 256.0) - 0.5];
 
         math.normalizeVec3(worldNormal);
 
