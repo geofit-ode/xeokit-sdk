@@ -67,6 +67,7 @@ class BatchingLayer {
             primitiveName: primitiveName,
             primitive: primitive,
             positionsBuf: null,
+            offsetsBuf: null,
             normalsBuf: null,
             colorsbuf: null,
             flagsBuf: null,
@@ -361,7 +362,7 @@ class BatchingLayer {
                 state.positionsBuf = new ArrayBuf(gl, gl.ARRAY_BUFFER, buffer.quantizedPositions.slice(0, buffer.lenPositions), buffer.lenPositions, 3, gl.STATIC_DRAW);
             }
         }
-
+        state.offsetsBuf = new ArrayBuf(gl, gl.ARRAY_BUFFER, buffer.offsets.slice(0, buffer.lenPositions), buffer.lenPositions, 3, gl.STATIC_DRAW);
         if (buffer.lenNormals > 0) {
             let normalized = true; // For oct encoded UInts
             //let normalized = false; // For scaled
@@ -605,6 +606,27 @@ class BatchingLayer {
         this._state.flags2Buf.setData(tempArray, firstFlag, lenFlags);
     }
 
+    setOffset(portionId, offset) {
+        if (!this._finalized) {
+            throw "Not finalized";
+        }
+        const portionsIdx = portionId * 2;
+        const vertexBase = this._portions[portionsIdx];
+        const numVerts = this._portions[portionsIdx + 1];
+        const firstOffset = vertexBase * 3;
+        const lenOffsets = numVerts * 3;
+        const tempArray = this._scratchMemory.getFloat32Array(lenOffsets);
+        const x = offset[0];
+        const y = offset[1];
+        const z = offset[2];
+        for (let i = 0; i < lenOffsets; i += 3) {
+            tempArray[i + 0] = x;
+            tempArray[i + 1] = y;
+            tempArray[i + 2] = z;
+        }
+        this._state.offsetsBuf.setData(tempArray, firstOffset, lenOffsets);
+    }
+
     //-- NORMAL --------------------------------------------------------------------------------------------------------
 
     drawNormalFillOpaque(frameCtx) {
@@ -828,6 +850,10 @@ class BatchingLayer {
         if (state.positionsBuf) {
             state.positionsBuf.destroy();
             state.positionsBuf = null;
+        }
+        if (state.offsetsBuf) {
+            state.offsetsBuf.destroy();
+            state.offsetssBuf = null;
         }
         if (state.normalsBuf) {
             state.normalsBuf.destroy();

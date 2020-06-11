@@ -16,6 +16,7 @@ class BatchingBuffer {
         this.positions = new Float32Array(MAX_VERTS * 3); // Uncompressed
         this.colors = new Uint8Array(MAX_VERTS * 4); // Compressed
         this.quantizedPositions = new Uint16Array(MAX_VERTS * 3); // Compressed
+        this.offsets = new Float32Array(MAX_VERTS * 3); // Compressed
         this.normals = new Int8Array(MAX_VERTS * 3); // Compressed
         this.pickColors = new Uint8Array(MAX_VERTS * 4); // Compressed
         this.flags = new Uint8Array(MAX_VERTS * 4);

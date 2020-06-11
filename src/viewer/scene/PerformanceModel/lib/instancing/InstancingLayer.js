@@ -566,6 +566,16 @@ class InstancingLayer {
         this._state.flags2Buf.setData(tempUint8Vec4, portionId * 4, 4);
     }
 
+    setOffset(portionId, offset) {
+        if (!this._finalized) {
+            throw "Not finalized";
+        }
+        tempVec3a[0] = offset[0];
+        tempVec3a[1] = offset[1];
+        tempVec3a[2] = offset[2];
+        this._state.offsetsBuf.setData(tempUint8Vec4, portionId * 3, 3);
+    }
+
     //-- NORMAL --------------------------------------------------------------------------------------------------------
 
     drawNormalFillOpaque(frameCtx) {

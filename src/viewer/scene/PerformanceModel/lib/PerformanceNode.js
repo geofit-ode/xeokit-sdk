@@ -422,7 +422,7 @@ class PerformanceNode {
     }
 
     /**
-     * Gets the PerformanceNode's RGB colorize color, multiplies by the PerformanceNode's rendered fragment colors.
+     * Sets the PerformanceNode's RGB colorize color.
      *
      * Each element of the color is in range ````[0..1]````.
      *
@@ -449,7 +449,7 @@ class PerformanceNode {
     }
 
     /**
-     * Gets the PerformanceNode's RGB colorize color, multiplies by the PerformanceNode's rendered fragment colors.
+     * Gets the PerformanceNode's RGB colorize color.
      *
      * Each element of the color is in range ````[0..1]````.
      *
