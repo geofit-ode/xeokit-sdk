@@ -123,6 +123,55 @@ const tempVec3 = math.vec3();
  * });
  * ````
  *
+ * ## Dealing With Loaded Models That Are Not in the Viewpoint
+ *
+ * If, for example, we load model "duplex", hide some objects, then save a BCF viewpoint with
+ * ````BCFViewpointsPlugin````, then load another model, "schependomlaan", then load the viewpoint again, then
+ * sometimes all of the objects in model "schependomlaan" become visible, along with the visible objects in the
+ * viewpoint, which belong to model "duplex".
+ *
+ * The reason is that, when saving a BCF viewpoint, BCF logic works like the following pseudo code:
+ *
+ * ````
+ * If numVisibleObjects < numInvisibleObjects
+ *      save IDs of visible objects in BCF
+ *      exceptions = "visible objects"
+ * else
+ *      save IDS of invisible objects in BCF
+ *      exceptions = "invisible objects"
+ * ````
+ *
+ * When loading the viewpoint again:
+ *
+ * ````
+ * If exceptions = "visible objects"
+ *      hide all objects
+ *      show visible objects in BCF
+ * else
+ *      show all objects
+ *      hide invisible objects in BCF
+ * ````
+ *
+ * When the exception is "visible objects", loading the viewpoint shows all the objects in the first, which includes
+ * objects in "schependomlaan", which can be confusing, because those were not even loaded when we first
+ * saved the viewpoint..
+ *
+ * To solve this, we can supply a ````defaultInvisible```` option to {@link BCFViewpointsPlugin#getViewpoint}, which
+ * will force the plugin to save the IDs of all visible objects while making invisible objects the exception.
+ *
+ * That way, when we load the viewpoint again, after loading model "schependomlaan", the plugin will hide all objects
+ * in the scene first (which will include objects belonging to model "schependomlaan"), then make the objects in the
+ * viewpoint visible (which will only be those of object "duplex").
+ *
+ * ````javascript
+ * const viewpoint = bcfViewpoints.getViewpoint({ // Options
+ *     //..
+ *     defaultInvisible: true
+ * });
+ * ````
+ *
+ * [[Run an example](http://xeokit.github.io/xeokit-sdk/examples/#BCF_LoadViewpoint_defaultInvisible)]
+ *
  * @class BCFViewpointsPlugin
  */
 class BCFViewpointsPlugin extends Plugin {
@@ -165,6 +214,11 @@ class BCFViewpointsPlugin extends Plugin {
      * @param {Boolean} [options.openingsVisible=false] Indicates whether ````IfcOpening```` types should be forced visible in the viewpoint.
      * @param {Boolean} [options.spaceBoundariesVisible=false] Indicates whether the boundaries of ````IfcSpace```` types should be visible in the viewpoint.
      * @param {Boolean} [options.snapshot=true] Indicates whether the snapshot should be included in the viewpoint.
+     * @param {Boolean} [options.defaultInvisible=false] When ````true````, will save the default visibility of all objects
+     * as ````false````. This means that when we load the viewpoint again, and there are additional models loaded that
+     * were not saved in the viewpoint, those models will be hidden when we load the viewpoint, and that only the
+     * objects in the viewpoint will be visible.
+     * @param {Boolean} [options.reverseClippingPlanes=false] When ````true````, clipping planes are reversed (https://github.com/buildingSMART/BCF-XML/issues/193)
      * @returns {*} BCF JSON viewpoint object
      * @example
      *
@@ -238,11 +292,10 @@ class BCFViewpointsPlugin extends Plugin {
         const scene = this.viewer.scene;
         const camera = scene.camera;
         const realWorldOffset = scene.realWorldOffset;
-
+        const reverseClippingPlanes = (options.reverseClippingPlanes === true);
         let bcfViewpoint = {};
 
         // Camera
-
         let lookDirection = math.normalizeVec3(math.subVec3(camera.look, camera.eye, math.vec3()));
         let eye = camera.eye;
         let up = camera.up;
@@ -282,10 +335,26 @@ class BCFViewpointsPlugin extends Plugin {
         for (let id in sectionPlanes) {
             if (sectionPlanes.hasOwnProperty(id)) {
                 let sectionPlane = sectionPlanes[id];
-                bcfViewpoint.clipping_planes.push({
-                    location: xyzArrayToObject(sectionPlane.pos),
-                    direction: xyzArrayToObject(sectionPlane.dir)
-                });
+
+                let location = sectionPlane.pos;
+
+                let direction;
+                if (reverseClippingPlanes) {
+                    direction = math.negateVec3(sectionPlane.dir, math.vec3());
+                } else {
+                    direction = sectionPlane.dir;
+                }
+
+                if (camera.yUp) {
+                    // BCF is Z up
+                    location = YToZ(location);
+                    direction = YToZ(direction);
+                }
+                math.addVec3(location, realWorldOffset);
+
+                location = xyzArrayToObject(location);
+                direction = xyzArrayToObject(direction);
+                bcfViewpoint.clipping_planes.push({location, direction});
             }
         }
 
@@ -301,13 +370,51 @@ class BCFViewpointsPlugin extends Plugin {
             }
         };
 
+        const opacityObjectIds = new Set(scene.opacityObjectIds);
+        const xrayedObjectIds = new Set(scene.xrayedObjectIds);
+        const colorizedObjectIds = new Set(scene.colorizedObjectIds);
+
+        const coloring = Object.values(scene.objects)
+            .filter(object => opacityObjectIds.has(object.id) || colorizedObjectIds.has(object.id) || xrayedObjectIds.has(object.id))
+            .reduce((coloring, object) => {
+                let color = colorizeToRGB(object.colorize);
+                let alpha;
+
+                if (object.xrayed) {
+                    if (scene.xrayMaterial.fillAlpha === 0.0 && scene.xrayMaterial.edgeAlpha !== 0.0) {
+                        // BCF can't deal with edges. If xRay is implemented only with edges, set an arbitrary opacity
+                        alpha = 0.1;
+                    } else {
+                        alpha = scene.xrayMaterial.fillAlpha;
+                    }
+                    alpha = Math.round(alpha * 255).toString(16).padStart(2, "0");
+                    color = alpha + color;
+                } else if (opacityObjectIds.has(object.id)) {
+                    alpha = Math.round(object.opacity * 255).toString(16).padStart(2, "0");
+                    color = alpha + color;
+                }
+
+                if (!coloring[color]) {
+                    coloring[color] = [];
+                }
+                coloring[color].push({
+                    ifc_guid: object.id,
+                    originating_system: this.originatingSystem
+                });
+                return coloring;
+            }, {});
+
+        const coloringArray = Object.entries(coloring).map(([color, components]) => { return { color, components } });
+
+        bcfViewpoint.components.coloring = coloringArray;
+
         const objectIds = scene.objectIds;
         const visibleObjects = scene.visibleObjects;
         const visibleObjectIds = scene.visibleObjectIds;
         const invisibleObjectIds = objectIds.filter(id => !visibleObjects[id]);
         const selectedObjectIds = scene.selectedObjectIds;
 
-        if (visibleObjectIds.length < invisibleObjectIds.length) {
+        if (options.defaultInvisible || visibleObjectIds.length < invisibleObjectIds.length) {
             bcfViewpoint.components.visibility.exceptions = visibleObjectIds.map(el => this._objectIdToComponent(el));
             bcfViewpoint.components.visibility.default_visibility = false;
         } else {
@@ -351,12 +458,12 @@ class BCFViewpointsPlugin extends Plugin {
      * @param {*} [options] Options for setting the viewpoint.
      * @param {Boolean} [options.rayCast=true] When ````true```` (default), will attempt to set {@link Camera#look} to the closest
      * point of surface intersection with a ray fired from the BCF ````camera_view_point```` in the direction of ````camera_direction````.
-     * @param {Boolean} [options.immediate] When ````true```` (default), immediately set camera position.
-     * @param {Boolean} [options.duration] Flight duration in seconds.  Overrides {@link CameraFlightAnimation#duration}. Only applies when ````immediate```` is ````true````.
+     * @param {Boolean} [options.immediate=true] When ````true```` (default), immediately set camera position.
+     * @param {Boolean} [options.duration] Flight duration in seconds.  Overrides {@link CameraFlightAnimation#duration}. Only applies when ````immediate```` is ````false````.
      * @param {Boolean} [options.reset=true] When ````true```` (default), set {@link Entity#xrayed} and {@link Entity#highlighted} ````false```` on all scene objects.
+     * @param {Boolean} [options.reverseClippingPlanes=false] When ````true````, clipping planes are reversed (https://github.com/buildingSMART/BCF-XML/issues/193)
      */
     setViewpoint(bcfViewpoint, options = {}) {
-
         if (!bcfViewpoint) {
             return;
         }
@@ -368,15 +475,25 @@ class BCFViewpointsPlugin extends Plugin {
         const immediate = (options.immediate !== false);
         const reset = (options.reset !== false);
         const realWorldOffset = scene.realWorldOffset;
+        const reverseClippingPlanes = (options.reverseClippingPlanes === true);
 
         scene.clearSectionPlanes();
 
         if (bcfViewpoint.clipping_planes) {
             bcfViewpoint.clipping_planes.forEach(function (e) {
-                new SectionPlane(scene, {
-                    pos: xyzObjectToArray(e.location, tempVec3),
-                    dir: xyzObjectToArray(e.direction, tempVec3)
-                });
+                let pos = xyzObjectToArray(e.location, tempVec3);
+                let dir = xyzObjectToArray(e.direction, tempVec3);
+
+                if (reverseClippingPlanes) {
+                    math.negateVec3(dir);
+                }
+                math.subVec3(pos, realWorldOffset);
+
+                if (camera.yUp) {
+                    pos = ZToY(pos);
+                    dir = ZToY(dir);
+                }
+                new SectionPlane(scene, {pos, dir});
             });
         }
 
@@ -416,11 +533,31 @@ class BCFViewpointsPlugin extends Plugin {
                 }
             }
 
+
             if (bcfViewpoint.components.selection) {
                 scene.setObjectsSelected(scene.selectedObjectIds, false);
                 Object.keys(scene.models).forEach(() => {
                     bcfViewpoint.components.selection.forEach(x => scene.setObjectsSelected(x.ifc_guid, true));
                 });
+            }
+
+            if (bcfViewpoint.components.coloring) {
+                bcfViewpoint.components.coloring.forEach(coloring => {
+                    let uuids = coloring.components.map(component => component.ifc_guid);
+                    let color = coloring.color;
+                    if (color.length === 8) {
+                        // There is an alpha color
+                        let alpha = parseInt(color.substring(0, 2), 16) / 256;
+                        color = color.substring(2);
+                        scene.setObjectsOpacity(uuids, alpha);
+                    }
+                    let colorArray = [
+                        parseInt(color.substring(0, 2), 16),
+                        parseInt(color.substring(2, 4), 16),
+                        parseInt(color.substring(4, 6), 16)
+                    ]
+                    scene.setObjectsColorized(uuids, colorArray);
+                })
             }
         }
 
@@ -448,7 +585,7 @@ class BCFViewpointsPlugin extends Plugin {
                 projection = "ortho";
             }
 
-            math.subVec4(eye, realWorldOffset);
+            math.subVec3(eye, realWorldOffset);
 
             if (camera.yUp) {
                 eye = ZToY(eye);
@@ -506,4 +643,12 @@ function ZToY(vec) {
     return new Float64Array([vec[0], vec[2], -vec[1]]);
 }
 
-export {BCFViewpointsPlugin}
+function colorizeToRGB(color) {
+    let rgb = "";
+    rgb += Math.round(color[0] * 255).toString(16).padStart(2, "0");
+    rgb += Math.round(color[1] * 255).toString(16).padStart(2, "0");
+    rgb += Math.round(color[2] * 255).toString(16).padStart(2, "0");
+    return rgb;
+}
+
+export {BCFViewpointsPlugin};

@@ -22,6 +22,7 @@ const Renderer = function (scene, options) {
     const canvas = scene.canvas.canvas;
     const gl = scene.canvas.gl;
     const canvasTransparent = (!!options.transparent);
+    const alphaDepthMask = options.alphaDepthMask;
 
     const pickIDs = new Map({});
 
@@ -42,7 +43,9 @@ const Renderer = function (scene, options) {
     const occlusionBuffer2 = new RenderBuffer(canvas, gl);
 
     const pickBuffer = new RenderBuffer(canvas, gl);
-    const readPixelBuffer = new RenderBuffer(canvas, gl);
+    const snapshotBuffer = new RenderBuffer(canvas, gl);
+
+    let snapshotBound = false;
 
     const bindOutputFrameBuffer = null;
     const unbindOutputFrameBuffer = null;
@@ -71,7 +74,7 @@ const Renderer = function (scene, options) {
     this.webglContextRestored = function (gl) {
 
         pickBuffer.webglContextRestored(gl);
-        readPixelBuffer.webglContextRestored(gl);
+        snapshotBuffer.webglContextRestored(gl);
         saoDepthBuffer.webglContextRestored(gl);
         occlusionBuffer1.webglContextRestored(gl);
         occlusionBuffer2.webglContextRestored(gl);
@@ -596,20 +599,15 @@ return;
                 }
             }
 
-            const transparentDepthMask = true;
             if (xrayedFillTransparentBinLen > 0 || xrayEdgesTransparentBinLen > 0 || normalFillTransparentBinLen > 0) {
                 gl.enable(gl.CULL_FACE);
                 gl.enable(gl.BLEND);
 
-                if (canvasTransparent) {
-                    gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
-                } else {
-                    gl.blendEquation(gl.FUNC_ADD);
-                    gl.blendFuncSeparate(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA, gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
-                }
+                gl.blendEquation(gl.FUNC_ADD);
+                gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
 
                 frameCtx.backfaces = false;
-                if (transparentDepthMask) {
+                if (!alphaDepthMask) {
                     gl.depthMask(false);
                 }
                 if (xrayEdgesTransparentBinLen > 0) {
@@ -635,7 +633,9 @@ return;
                     }
                 }
                 gl.disable(gl.BLEND);
-                gl.depthMask(true);
+                if (!alphaDepthMask) {
+                    gl.depthMask(true);
+                }
             }
 
             if (highlightedFillOpaqueBinLen > 0 || highlightedEdgesOpaqueBinLen > 0) {
@@ -1215,8 +1215,8 @@ return;
      * @private
      */
     this.readPixels = function (pixels, colors, len, opaqueOnly) {
-        readPixelBuffer.bind();
-        readPixelBuffer.clear();
+        snapshotBuffer.bind();
+        snapshotBuffer.clear();
         this.render({force: true, opaqueOnly: opaqueOnly});
         let color;
         let i;
@@ -1225,29 +1225,63 @@ return;
         for (i = 0; i < len; i++) {
             j = i * 2;
             k = i * 4;
-            color = readPixelBuffer.read(pixels[j], pixels[j + 1]);
+            color = snapshotBuffer.read(pixels[j], pixels[j + 1]);
             colors[k] = color[0];
             colors[k + 1] = color[1];
             colors[k + 2] = color[2];
             colors[k + 3] = color[3];
         }
-        readPixelBuffer.unbind();
+        snapshotBuffer.unbind();
         imageDirty = true;
     };
 
     /**
-     * Read a snapshot of image data from the renderer's current output. Performs a force-render first.
+     * Enter snapshot mode.
+     *
+     * Switches rendering to a hidden snapshot canvas.
+     *
+     * Exit snapshot mode using endSnapshot().
+     */
+    this.beginSnapshot = function () {
+        snapshotBuffer.bind();
+        snapshotBuffer.clear();
+        snapshotBound = true;
+    };
+
+    /**
+     * When in snapshot mode, renders a frame of the current Scene state to the snapshot canvas.
+     */
+    this.renderSnapshot = function () {
+        if (!snapshotBound) {
+            return;
+        }
+        snapshotBuffer.clear();
+        this.render({force: true, opaqueOnly: false});
+        imageDirty = true;
+    };
+
+    /**
+     * When in snapshot mode, gets an image of the snapshot canvas.
+     *
      * @private
      * @returns {String} The image data URI.
      */
-    this.readImage = function (params) {
-        readPixelBuffer.bind();
-        readPixelBuffer.clear();
-        this.render({force: true, opaqueOnly: false});
-        const imageDataURI = readPixelBuffer.readImage(params);
-        readPixelBuffer.unbind();
-        imageDirty = true;
+    this.readSnapshot = function (params) {
+        const imageDataURI = snapshotBuffer.readImage(params);
         return imageDataURI;
+    };
+
+    /**
+     * Exists snapshot mode.
+     *
+     * Switches rendering back to the main canvas.
+     */
+    this.endSnapshot = function () {
+        if (!snapshotBound) {
+            return;
+        }
+        snapshotBuffer.unbind();
+        snapshotBound = false;
     };
 
     /**
@@ -1260,7 +1294,7 @@ return;
         drawables = {};
 
         pickBuffer.destroy();
-        readPixelBuffer.destroy();
+        snapshotBuffer.destroy();
         saoDepthBuffer.destroy();
         occlusionBuffer1.destroy();
         occlusionBuffer2.destroy();

@@ -4,7 +4,6 @@ import {buildEdgeIndices} from '../math/buildEdgeIndices.js';
 import {WEBGL_INFO} from '../webglInfo.js';
 import {PerformanceMesh} from './lib/PerformanceMesh.js';
 import {PerformanceNode} from './lib/PerformanceNode.js';
-import {getBatchingBuffer, putBatchingBuffer} from "./lib/batching/BatchingBuffer.js";
 import {getBatchingLayerScratchMemory} from "./lib/batching/BatchingLayerScratchMemory.js";
 import {BatchingLayer} from './lib/batching/BatchingLayer.js';
 import {InstancingLayer} from './lib/instancing/InstancingLayer.js';
@@ -71,7 +70,6 @@ class PerformanceModel extends Component {
 
         this._instancingLayers = {};
         this._currentBatchingLayer = null;
-        this._batchingBuffer = getBatchingBuffer();
         this._batchingScratchMemory = getBatchingLayerScratchMemory(this);
 
         this._meshes = {};
@@ -518,7 +516,7 @@ class PerformanceModel extends Component {
             }
 
             if (this._currentBatchingLayer) {
-                if (!this._currentBatchingLayer.canCreatePortion(positions.length)) {
+                if (!this._currentBatchingLayer.canCreatePortion(positions.length, indices.length)) {
                     this._currentBatchingLayer.finalize();
                     this._currentBatchingLayer = null;
                 }
@@ -528,7 +526,6 @@ class PerformanceModel extends Component {
                 // console.log("New batching layer");
                 this._currentBatchingLayer = new BatchingLayer(this, {
                     primitive: "triangles",
-                    buffer: this._batchingBuffer,
                     scratchMemory: this._batchingScratchMemory,
                     positionsDecodeMatrix: cfg.positionsDecodeMatrix,
                 });
@@ -689,10 +686,6 @@ class PerformanceModel extends Component {
             this._currentBatchingLayer.finalize();
             this._currentBatchingLayer = null;
         }
-        if (this._batchingBuffer) {
-            putBatchingBuffer(this._batchingBuffer);
-            this._batchingBuffer = null;
-        }
         for (const geometryId in this._instancingLayers) {
             if (this._instancingLayers.hasOwnProperty(geometryId)) {
                 this._instancingLayers[geometryId].finalize();
@@ -733,6 +726,15 @@ class PerformanceModel extends Component {
      */
     get backfaces() {
         return this._backfaces;
+    }
+
+    /**
+     * Gets the list of {@link Entity}s within this PerformanceModel.
+     *
+     * @returns {Entity[]}
+     */
+    get entityList() {
+        return this._nodeList;
     }
 
     //------------------------------------------------------------------------------------------------------------------
@@ -1520,10 +1522,6 @@ class PerformanceModel extends Component {
         if (this._currentBatchingLayer) {
             this._currentBatchingLayer.destroy();
             this._currentBatchingLayer = null;
-        }
-        if (this._batchingBuffer) {
-            putBatchingBuffer(this._batchingBuffer);
-            this._batchingBuffer = null;
         }
         this.scene.camera.off(this._onCameraViewMatrix);
         for (let i = 0, len = this._layerList.length; i < len; i++) {

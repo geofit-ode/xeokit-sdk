@@ -38,6 +38,7 @@ class Viewer {
      * @param {Number[]} [cfg.origin=[0,0,0]] The Real-space 3D origin, in current measurement units, at which the World-space coordinate origin ````[0,0,0]```` sits.
      * @param {Boolean} [cfg.saoEnabled=false] Whether to enable Scalable Ambient Obscurance (SAO) effect. See {@link SAO} for more info.
      * @throws {String} Throws an exception when both canvasId or canvasElement are missing or they aren't pointing to a valid HTMLCanvasElement.
+     * @param {Boolean} [cfg.alphaDepthMask=true] Whether writing into the depth buffer is enabled or disabled when rendering transparent objects.
      */
     constructor(cfg) {
 
@@ -72,7 +73,8 @@ class Viewer {
             units: cfg.units,
             scale: cfg.scale,
             origin: cfg.origin,
-            saoEnabled: cfg.saoEnabled
+            saoEnabled: cfg.saoEnabled,
+            alphaDepthMask: (cfg.alphaDepthMask !== false)
         });
 
         /**
@@ -243,7 +245,22 @@ class Viewer {
     }
 
     /**
-     * Returns a snapshot of this Viewer's canvas as a Base64-encoded image.
+     * Enter snapshot mode.
+     *
+     * Switches rendering to a hidden snapshot canvas.
+     *
+     * Exit snapshot mode using {@link Viewer#endSnapshot}.
+     */
+    beginSnapshot() {
+        if (this._snapshotBegun) {
+            return;
+        }
+        this.scene._renderer.beginSnapshot();
+        this._snapshotBegun = true;
+    }
+
+    /**
+     * Gets a snapshot of this Viewer's {@link Scene} as a Base64-encoded image.
      *
      * #### Usage:
      *
@@ -261,6 +278,13 @@ class Viewer {
      * @returns {String} String-encoded image data URI.
      */
     getSnapshot(params = {}) {
+
+        const needFinishSnapshot = (!this._snapshotBegun);
+
+        if (!this._snapshotBegun) {
+            this.beginSnapshot();
+        }
+
         this.sendToPlugins("snapshotStarting"); // Tells plugins to hide things that shouldn't be in snapshot
 
         const resize = (params.width !== undefined && params.height !== undefined);
@@ -278,9 +302,9 @@ class Viewer {
             canvas.style.height = height + "px";
         }
 
-        this.scene.render(true);
+        this.scene._renderer.renderSnapshot();
 
-        const imageDataURI = this.scene.canvas._getSnapshot(params);
+        const imageDataURI = this.scene._renderer.readSnapshot(params);
 
         if (resize) {
             canvas.style.width = saveCssWidth;
@@ -293,7 +317,26 @@ class Viewer {
 
         this.sendToPlugins("snapshotFinished");
 
+        if (needFinishSnapshot) {
+            this.endSnapshot();
+        }
+
         return imageDataURI;
+    }
+
+    /**
+     * Exists snapshot mode.
+     *
+     * Switches rendering back to the main canvas.
+     *
+     */
+    endSnapshot() {
+        if (!this._snapshotBegun) {
+            return;
+        }
+        this.scene._renderer.endSnapshot();
+        this.scene._renderer.render({force: true});
+        this._snapshotBegun = false;
     }
 
     /** Destroys this Viewer.

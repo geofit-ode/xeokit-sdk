@@ -359,18 +359,6 @@ class Canvas extends Component {
     }
 
     /**
-     * Called by Viewer#getSnapshot
-     * @private
-     * @param params
-     * @returns {*}
-     * @private
-     */
-    _getSnapshot(params={}) {
-        const imageDataURI = this.scene._renderer.readImage(params);
-        return imageDataURI;
-    }
-
-    /**
      * Reads colors of pixels from the last rendered frame.
      *
      * Call this method like this:
@@ -422,7 +410,6 @@ class Canvas extends Component {
         // Memory leak avoidance
         this.canvas.removeEventListener("webglcontextlost", this._webglcontextlostListener);
         this.canvas.removeEventListener("webglcontextrestored", this._webglcontextrestoredListener);
-        this.canvas = null;
         this.gl = null;
         super.destroy();
     }

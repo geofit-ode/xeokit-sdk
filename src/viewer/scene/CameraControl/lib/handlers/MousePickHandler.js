@@ -17,6 +17,8 @@ class MousePickHandler {
         this._timeout = null;
         this._lastPickedEntityId = null;
 
+        let down = false;
+
         const canvas = this._scene.canvas.canvas;
 
         const flyCameraTo = (pickResult) => {
@@ -45,6 +47,10 @@ class MousePickHandler {
         canvas.addEventListener("mousemove", this._canvasMouseMoveHandler = (e) => {
 
             if (!(configs.active && configs.pointerEnabled)) {
+                return;
+            }
+
+            if (down) {
                 return;
             }
 
@@ -109,12 +115,18 @@ class MousePickHandler {
                 return;
             }
 
+            const leftButtonDown = (e.which === 1);
+
+            if (!leftButtonDown) {
+                return;
+            }
+
             states.mouseDownClientX = e.clientX;
             states.mouseDownClientY = e.clientY;
             states.mouseDownCursorX = states.mouseCanvasPos[0];
             states.mouseDownCursorY = states.mouseCanvasPos[1];
 
-            if ((!configs.firstPerson) && configs.pivoting) {
+            if ((!configs.firstPerson) && configs.followPointer) {
 
                 pickController.pickCursorPos = states.mouseCanvasPos;
                 pickController.schedulePickSurface = true;
@@ -129,11 +141,23 @@ class MousePickHandler {
                     }
                 }
             }
+
+            down = true;
+        });
+
+        document.addEventListener('mouseup', this._documentMouseUpHandler = (e) => {
+            down = false;
         });
 
         canvas.addEventListener('mouseup', this._canvasMouseUpHandler = (e) => {
 
             if (!(configs.active && configs.pointerEnabled)) {
+                return;
+            }
+
+            const leftButtonDown = (e.which === 1);
+
+            if (!leftButtonDown) {
                 return;
             }
 
@@ -184,9 +208,11 @@ class MousePickHandler {
 
             if (this._clicks === 1) { // First click
 
+                const mouseCanvasPos = states.mouseCanvasPos.slice();
+
                 this._timeout = setTimeout(() => {
 
-                    pickController.pickCursorPos = states.mouseCanvasPos;
+                    pickController.pickCursorPos = mouseCanvasPos;
                     pickController.schedulePickEntity = configs.doublePickFlyTo;
                     pickController.schedulePickSurface = pickedSurfaceSubs;
                     pickController.update();
@@ -199,7 +225,7 @@ class MousePickHandler {
 
                             cameraControl.fire("pickedSurface", pickController.pickResult, true);
 
-                            if ((!configs.firstPerson) && configs.pivoting) {
+                            if ((!configs.firstPerson) && configs.followPointer) {
                                 controllers.pivotController.startPivot(pickController.pickResult.worldPos);
                                 controllers.pivotController.showPivot();
                             }
@@ -236,7 +262,7 @@ class MousePickHandler {
 
                         flyCameraTo(pickController.pickResult);
 
-                        if ((!configs.firstPerson) && configs.pivoting) {
+                        if ((!configs.firstPerson) && configs.followPointer) {
 
                             const pickedEntityAABB = pickController.pickResult.entity.aabb;
                             const pickedEntityCenterPos = math.getAABB3Center(pickedEntityAABB);
@@ -253,7 +279,7 @@ class MousePickHandler {
 
                         flyCameraTo();
 
-                        if ((!configs.firstPerson) && configs.pivoting) {
+                        if ((!configs.firstPerson) && configs.followPointer) {
 
                             const sceneAABB = scene.aabb;
                             const sceneCenterPos = math.getAABB3Center(sceneAABB);
@@ -283,6 +309,7 @@ class MousePickHandler {
         canvas.removeEventListener("mousemove", this._canvasMouseMoveHandler);
         canvas.removeEventListener("mousedown", this._canvasMouseDownHandler);
         canvas.removeEventListener("mouseup", this._canvasMouseUpHandler);
+        document.removeEventListener("mouseup", this._documentMouseUpHandler);
         if (this._timeout) {
             window.clearTimeout(this._timeout);
             this._timeout = null;
