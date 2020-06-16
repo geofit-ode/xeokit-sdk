@@ -218,9 +218,6 @@ class PivotController {
      * Only works if we set an  HTML DOM element to represent the pivot position.
      */
     hidePivot() {
-        if (!this._shown) {
-            return;
-        }
         if (this._hideTimeout !== null) {
             window.clearTimeout(this._hideTimeout);
             this._hideTimeout = null;
