@@ -53,9 +53,6 @@ class InstancingDepthRenderer {
 
         this._aPosition.bindArrayBuffer(state.positionsBuf);
 
-        this._aOffset.bindArrayBuffer(state.offsetsBuf);
-        instanceExt.vertexAttribDivisorANGLE(this._aOffset.location, 1);
-
         this._aColor.bindArrayBuffer(state.colorsBuf);
         instanceExt.vertexAttribDivisorANGLE(this._aColor.location, 1);
 
@@ -67,6 +64,11 @@ class InstancingDepthRenderer {
             instanceExt.vertexAttribDivisorANGLE(this._aFlags2.location, 1);
         }
 
+        if (this._aOffset) {
+            this._aOffset.bindArrayBuffer(state.offsetsBuf);
+            instanceExt.vertexAttribDivisorANGLE(this._aOffset.location, 1);
+        }
+
         state.indicesBuf.bind();
 
         instanceExt.drawElementsInstancedANGLE(state.primitive, state.indicesBuf.numItems, state.indicesBuf.itemType, 0, state.numInstances);
@@ -76,11 +78,12 @@ class InstancingDepthRenderer {
         instanceExt.vertexAttribDivisorANGLE(this._aModelMatrixCol2.location, 0);
         instanceExt.vertexAttribDivisorANGLE(this._aColor.location, 0);
         instanceExt.vertexAttribDivisorANGLE(this._aFlags.location, 0);
-
-        if (this._aFlags2) { // Won't be in shader when not clipping
+        if (this._aFlags2) {
             instanceExt.vertexAttribDivisorANGLE(this._aFlags2.location, 0);
         }
-        instanceExt.vertexAttribDivisorANGLE(this._aOffset.location, 0);
+        if (this._aOffset) {
+            instanceExt.vertexAttribDivisorANGLE(this._aOffset.location, 0);
+        }
     }
 
     _allocate() {

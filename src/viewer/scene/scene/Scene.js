@@ -1171,32 +1171,26 @@ class Scene extends Component {
         const clearEachPass = this._clearEachPass;
         let pass;
         let clear;
+        const imageDirty = this._renderer.getImageDirty();
 
-        for (pass = 0; pass < passes; pass++) {
+        if (imageDirty || forceRender) {
+            for (pass = 0; pass < passes; pass++) {
 
-            renderEvent.pass = pass;
+                renderEvent.pass = pass;
 
-            /**
-             * Fired when about to render a frame for a Scene.
-             *
-             * @event rendering
-             * @param {String} sceneID The ID of this Scene.
-             * @param {Number} pass Index of the pass we are about to render (see {@link Scene#passes}).
-             */
-            this.fire("rendering", renderEvent, true);
+                /**
+                 * Fired when about to render a frame for a Scene.
+                 *
+                 * @event rendering
+                 * @param {String} sceneID The ID of this Scene.
+                 * @param {Number} pass Index of the pass we are about to render (see {@link Scene#passes}).
+                 */
+                this.fire("rendering", renderEvent, true);
 
-            clear = clearEachPass || (pass === 0);
+                clear = clearEachPass || (pass === 0);
 
-            this._renderer.render({pass: pass, clear: clear, force: forceRender});
-
-            /**
-             * Fired when we have just rendered a frame for a Scene.
-             *
-             * @event rendering
-             * @param {String} sceneID The ID of this Scene.
-             * @param {Number} pass Index of the pass we rendered (see {@link Scene#passes}).
-             */
-            this.fire("rendered", renderEvent, true);
+                this._renderer.render({pass: pass, clear: clear, force: forceRender});
+            }
         }
 
         this._saveAmbientColor();

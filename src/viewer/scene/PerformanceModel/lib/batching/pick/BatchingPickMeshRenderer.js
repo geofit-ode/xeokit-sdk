@@ -36,7 +36,9 @@ class BatchingPickMeshRenderer {
         gl.uniformMatrix4fv(this._uPositionsDecodeMatrix, false, layer._state.positionsDecodeMatrix);
         gl.uniformMatrix4fv(this._uViewMatrix, false, frameCtx.pickViewMatrix ? model.getPickViewMatrix(frameCtx.pickViewMatrix) : model.viewMatrix);
         this._aPosition.bindArrayBuffer(state.positionsBuf);
-        this._aOffset.bindArrayBuffer(state.offsetsBuf);
+        if (this._aOffset) {
+            this._aOffset.bindArrayBuffer(state.offsetsBuf);
+        }
         if (this._aFlags) {
             this._aFlags.bindArrayBuffer(state.flagsBuf);
         }

@@ -40,7 +40,9 @@ class BatchingPickNormalsRenderer {
         gl.uniformMatrix4fv(this._uProjMatrix, false, frameCtx.pickProjMatrix);
         gl.uniformMatrix4fv(this._uPositionsDecodeMatrix, false, layer._state.positionsDecodeMatrix);
         this._aPosition.bindArrayBuffer(state.positionsBuf);
-        this._aOffset.bindArrayBuffer(state.offsetsBuf);
+        if (this._aOffset) {
+            this._aOffset.bindArrayBuffer(state.offsetsBuf);
+        }
         if (this._aNormal) {
             this._aNormal.bindArrayBuffer(state.normalsBuf);
         }

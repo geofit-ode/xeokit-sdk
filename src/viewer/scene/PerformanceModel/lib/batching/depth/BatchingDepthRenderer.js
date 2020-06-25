@@ -37,7 +37,9 @@ class BatchingDepthRenderer {
         gl.uniformMatrix4fv(this._uPositionsDecodeMatrix, false, layer._state.positionsDecodeMatrix);
         gl.uniformMatrix4fv(this._uViewMatrix, false, model.viewMatrix);
         this._aPosition.bindArrayBuffer(state.positionsBuf);
-        this._aOffset.bindArrayBuffer(state.offsetsBuf);
+        if (this._aOffset) {
+            this._aOffset.bindArrayBuffer(state.offsetsBuf);
+        }
         if (this._aColor) { // Needed for masking out transparent entities using alpha channel
             this._aColor.bindArrayBuffer(state.colorsBuf);
         }

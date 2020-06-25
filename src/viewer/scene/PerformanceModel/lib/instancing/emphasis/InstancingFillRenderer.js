@@ -56,7 +56,6 @@ class InstancingFillRenderer {
         instanceExt.vertexAttribDivisorANGLE(this._aModelMatrixCol2.location, 1);
 
         this._aPosition.bindArrayBuffer(state.positionsBuf);
-        this._aOffset.bindArrayBuffer(state.offsetsBuf);
 
         this._aFlags.bindArrayBuffer(state.flagsBuf, gl.UNSIGNED_BYTE, true);
         instanceExt.vertexAttribDivisorANGLE(this._aFlags.location, 1);
@@ -64,6 +63,11 @@ class InstancingFillRenderer {
         if (this._aFlags2) {
             this._aFlags2.bindArrayBuffer(state.flags2Buf, gl.UNSIGNED_BYTE, true);
             instanceExt.vertexAttribDivisorANGLE(this._aFlags2.location, 1);
+        }
+
+        if (this._aOffset) {
+            this._aOffset.bindArrayBuffer(state.offsetsBuf);
+            instanceExt.vertexAttribDivisorANGLE(this._aOffset.location, 1);
         }
 
         state.indicesBuf.bind();
@@ -96,11 +100,17 @@ class InstancingFillRenderer {
         instanceExt.vertexAttribDivisorANGLE(this._aModelMatrixCol1.location, 0);
         instanceExt.vertexAttribDivisorANGLE(this._aModelMatrixCol2.location, 0);
 
-        instanceExt.vertexAttribDivisorANGLE(this._aFlags.location, 0);
+        if (this._aFlags) {
+            instanceExt.vertexAttribDivisorANGLE(this._aFlags.location, 0);
+        }
+
         if (this._aFlags2) {
             instanceExt.vertexAttribDivisorANGLE(this._aFlags2.location, 0);
         }
-        instanceExt.vertexAttribDivisorANGLE(this._aOffset.location, 0);
+
+        if (this._aOffset) {
+            instanceExt.vertexAttribDivisorANGLE(this._aOffset.location, 0);
+        }
     }
 
     _allocate() {

@@ -174,6 +174,11 @@ const Renderer = function (scene, options) {
         }
     };
 
+    this.getImageDirty = function () {
+        return imageDirty;
+    };
+
+
     /**
      * Renders inserted drawables.
      *  @private
