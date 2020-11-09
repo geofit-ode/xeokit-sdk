@@ -150,6 +150,10 @@ class BatchingPickMeshRenderer {
         this._aPickColor = program.getAttribute("pickColor");
         this._aFlags = program.getAttribute("flags");
         this._aFlags2 = program.getAttribute("flags2");
+
+
+        this._uLogDepthConstant = program.getLocation("logDepthConstant");
+        this._uZFar = program.getLocation("zFar");
     }
 
     _bindProgram(frameCtx) {
@@ -157,12 +161,16 @@ class BatchingPickMeshRenderer {
         const scene = this._scene;
         const gl = scene.canvas.gl;
         const program = this._program;
-        const camera = scene.camera;
+        const projectState = scene.camera.project._state;
 
         program.bind();
 
         gl.uniform1i(this._uPickInvisible, frameCtx.pickInvisible);
-        gl.uniformMatrix4fv(this._uProjMatrix, false, frameCtx.pickProjMatrix || camera.project._state.matrix);
+
+        gl.uniformMatrix4fv(this._uProjMatrix, false, frameCtx.pickProjMatrix || projectState.matrix);
+
+        gl.uniform1f(this._uZFar, projectState.far);
+        gl.uniform1f(this._uLogDepthConstant, scene.camera.logDepthConstant);
     }
 
     webglContextRestored() {

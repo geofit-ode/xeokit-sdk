@@ -245,6 +245,9 @@ class InstancingDrawRenderer {
 
         this._uOcclusionTexture = "uOcclusionTexture";
         this._uSAOParams = program.getLocation("uSAOParams");
+
+        this._uLogDepthConstant = program.getLocation("logDepthConstant");
+        this._uZFar = program.getLocation("zFar");
     }
 
     _bindProgram(frameCtx) {
@@ -253,10 +256,12 @@ class InstancingDrawRenderer {
         const program = this._program;
         const lightsState = scene._lightsState;
         const lights = lightsState.lights;
+        const projectState = scene.camera.project._state;
         let light;
         program.bind();
-        const camera = scene.camera;
-        gl.uniformMatrix4fv(this._uProjMatrix, false, camera._project._state.matrix);
+        gl.uniformMatrix4fv(this._uProjMatrix, false, projectState.matrix);
+        gl.uniform1f(this._uZFar, projectState.far);
+        gl.uniform1f(this._uLogDepthConstant, scene.camera.logDepthConstant);
         for (let i = 0, len = lights.length; i < len; i++) {
             light = lights[i];
             if (this._uLightAmbient[i]) {

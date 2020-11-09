@@ -195,6 +195,12 @@ class OcclusionTester {
         src.push("uniform mat4 modelMatrix;");
         src.push("uniform mat4 viewMatrix;");
         src.push("uniform mat4 projMatrix;");
+        src.push("uniform float logDepthConstant;");
+        src.push("uniform float zFar;");
+        src.push("vec4 logarithmicDepth(vec4 clipPos) {");
+        src.push("      clipPos.z = ((2.0 * log(logDepthConstant * clipPos.z + 1.0) / log(logDepthConstant * zFar + 1.0)) - 1.0) * clipPos.w;");
+        src.push("      return clipPos;");
+        src.push("}");
         if (clipping) {
             src.push("varying vec4 vWorldPosition;");
         }
@@ -204,7 +210,7 @@ class OcclusionTester {
         if (clipping) {
             src.push("   vWorldPosition = worldPosition;");
         }
-        src.push("   gl_Position = projMatrix * viewPosition;");
+        src.push("   gl_Position = logarithmicDepth(projMatrix * viewPosition);");
         src.push("   gl_PointSize = " + POINT_SIZE + ".0;");
         src.push("}");
         return src;
@@ -265,6 +271,8 @@ class OcclusionTester {
             });
         }
         this._aPosition = program.getAttribute("position");
+        this._uLogDepthConstant = program.getLocation("logDepthConstant");
+        this._uZFar = program.getLocation("zFar");
     }
 
     /**
@@ -277,10 +285,13 @@ class OcclusionTester {
         const program = this._program;
         const sectionPlanesState = scene._sectionPlanesState;
         const camera = scene.camera;
+        const projectState = camera.project._state;
 
         program.bind();
 
-        gl.uniformMatrix4fv(this._uProjMatrix, false, camera._project._state.matrix);
+        gl.uniformMatrix4fv(this._uProjMatrix, false, projectState.matrix);
+        gl.uniform1f(this._uZFar, projectState.far);
+        gl.uniform1f(this._uLogDepthConstant, camera.logDepthConstant);
 
         for (let i = 0, len = this._occlusionLayersList.length; i < len; i++) {
 

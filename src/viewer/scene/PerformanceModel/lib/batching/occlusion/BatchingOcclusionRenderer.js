@@ -31,7 +31,7 @@ class BatchingOcclusionRenderer {
         const scene = model.scene;
         const gl = scene.canvas.gl;
         const state = batchingLayer._state;
-        const camera = scene.camera;
+        const projectState = scene.camera.project._state;
         const rtcCenter = batchingLayer._state.rtcCenter;
 
         if (!this._program) {
@@ -51,7 +51,10 @@ class BatchingOcclusionRenderer {
 
         const viewMat = (rtcCenter) ? createRTCViewMat(model.viewMatrix, rtcCenter) : model.viewMatrix;
         gl.uniformMatrix4fv(this._uViewMatrix, false, viewMat);
-        gl.uniformMatrix4fv(this._uProjMatrix, false, camera._project._state.matrix);
+
+        gl.uniformMatrix4fv(this._uProjMatrix, false, projectState.matrix);
+        gl.uniform1f(this._uZFar, projectState.far);
+        gl.uniform1f(this._uLogDepthConstant, scene.camera.logDepthConstant);
 
         if (rtcCenter) {
             if (frameCtx.lastRTCCenter) {
@@ -142,6 +145,8 @@ class BatchingOcclusionRenderer {
         this._aColor = program.getAttribute("color");
         this._aFlags = program.getAttribute("flags");
         this._aFlags2 = program.getAttribute("flags2");
+        this._uLogDepthConstant = program.getLocation("logDepthConstant");
+        this._uZFar = program.getLocation("zFar");
     }
 
     _bindProgram() {

@@ -165,15 +165,20 @@ class BatchingFillRenderer {
         this._aOffset = program.getAttribute("offset");
         this._aFlags = program.getAttribute("flags");
         this._aFlags2 = program.getAttribute("flags2");
+        this._uLogDepthConstant = program.getLocation("logDepthConstant");
+        this._uZFar = program.getLocation("zFar");
     }
 
     _bindProgram() {
         const scene = this._scene;
         const gl = scene.canvas.gl;
         const program = this._program;
+        const projectState = scene.camera.project._state;
         program.bind();
         const camera = scene.camera;
-        gl.uniformMatrix4fv(this._uProjMatrix, false, camera._project._state.matrix);
+        gl.uniformMatrix4fv(this._uProjMatrix, false, projectState.matrix);
+        gl.uniform1f(this._uZFar, projectState.far);
+        gl.uniform1f(this._uLogDepthConstant, scene.camera.logDepthConstant);
     }
 
     webglContextRestored() {

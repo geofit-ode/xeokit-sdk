@@ -22,6 +22,15 @@ function buildVertex(scene) {
     src.push("uniform mat4 viewMatrix;");
     src.push("uniform mat4 projMatrix;");
     src.push("uniform mat4 positionsDecodeMatrix;");
+
+    src.push("uniform float logDepthConstant;");
+    src.push("uniform float zFar;");
+
+    src.push("vec4 logarithmicDepth(vec4 clipPos) {");
+    src.push("      clipPos.z = ((2.0 * log(logDepthConstant * clipPos.z + 1.0) / log(logDepthConstant * zFar + 1.0)) - 1.0) * clipPos.w;");
+    src.push("      return clipPos;");
+    src.push("}");
+
     if (clipping) {
         src.push("varying vec4 vWorldPosition;");
         src.push("varying vec4 vFlags2;");
@@ -42,7 +51,7 @@ function buildVertex(scene) {
         src.push("  vWorldPosition = worldPosition;");
     }
     src.push("  vViewPosition = viewPosition;");
-    src.push("  gl_Position = projMatrix * viewPosition;");
+    src.push("  gl_Position = logarithmicDepth(projMatrix * viewPosition);");
     src.push("}");
     src.push("}");
     return src;

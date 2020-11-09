@@ -253,8 +253,8 @@ class Camera extends Component {
         this.worldAxis = cfg.worldAxis;
         this.gimbalLock = cfg.gimbalLock;
         this.constrainPitch = cfg.constrainPitch;
-
         this.projection = cfg.projection;
+        this.logDepthConstant = cfg.logDepthConstant;
 
         this._perspective.on("matrix", () => {
             if (this._projectionType === "perspective") {
@@ -885,6 +885,28 @@ class Camera extends Component {
      */
     get project() {
         return this._project;
+    }
+
+    /**
+     * Sets the logarithmic depth buffer constant.
+     *
+     * Default value is ````0.01````.
+     *
+     * @param {Number} logDepthConstant The logarithmic depth constant.
+     */
+    set logDepthConstant(logDepthConstant) {
+        this._logDepthConstant = logDepthConstant || 0.01;
+    }
+
+    /**
+     * Gets the logarithmic depth buffer constant.
+     *
+     * Default value is ````0.01````.
+     *
+     * @returns {Number} The logarithmic depth constant.
+     */
+    get logDepthConstant() {
+        return this._logDepthConstant;
     }
 
     /**

@@ -54,7 +54,6 @@ class BatchingDrawRenderer {
         }
 
         gl.uniformMatrix4fv(this._uViewMatrix, false, (rtcCenter) ? createRTCViewMat(model.viewMatrix, rtcCenter) : model.viewMatrix);
-
         gl.uniformMatrix4fv(this._uViewNormalMatrix, false, model.viewNormalMatrix);
 
         if (rtcCenter) {
@@ -201,6 +200,9 @@ class BatchingDrawRenderer {
         this._aFlags = program.getAttribute("flags");
         this._aFlags2 = program.getAttribute("flags2");
 
+        this._uLogDepthConstant = program.getLocation("logDepthConstant");
+        this._uZFar = program.getLocation("zFar");
+
         if (this._withSAO) {
             this._uOcclusionTexture = "uOcclusionTexture";
             this._uSAOParams = program.getLocation("uSAOParams");
@@ -213,11 +215,14 @@ class BatchingDrawRenderer {
         const gl = scene.canvas.gl;
         const program = this._program;
         const lights = scene._lightsState.lights;
-        const camera = scene.camera;
+        const projectState = scene.camera.project._state;
 
         program.bind();
 
-        gl.uniformMatrix4fv(this._uProjMatrix, false, camera._project._state.matrix);
+        gl.uniformMatrix4fv(this._uProjMatrix, false, projectState.matrix);
+
+        gl.uniform1f(this._uZFar, projectState.far);
+        gl.uniform1f(this._uLogDepthConstant, scene.camera.logDepthConstant);
 
         for (let i = 0, len = lights.length; i < len; i++) {
 

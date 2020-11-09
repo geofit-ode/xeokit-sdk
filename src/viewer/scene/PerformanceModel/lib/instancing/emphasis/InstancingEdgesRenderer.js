@@ -193,15 +193,22 @@ class InstancingEdgesRenderer {
         this._aModelMatrixCol0 = program.getAttribute("modelMatrixCol0");
         this._aModelMatrixCol1 = program.getAttribute("modelMatrixCol1");
         this._aModelMatrixCol2 = program.getAttribute("modelMatrixCol2");
+
+        this._uLogDepthConstant = program.getLocation("logDepthConstant");
+        this._uZFar = program.getLocation("zFar");
     }
 
     _bindProgram() {
         const scene = this._scene;
         const gl = scene.canvas.gl;
         const program = this._program;
+        const projectState = scene.camera.project._state;
         program.bind();
         const camera = scene.camera;
         gl.uniformMatrix4fv(this._uProjMatrix, false, camera._project._state.matrix);
+        gl.uniformMatrix4fv(this._uProjMatrix, false, projectState.matrix);
+        gl.uniform1f(this._uZFar, projectState.far);
+        gl.uniform1f(this._uLogDepthConstant, scene.camera.logDepthConstant);
     }
 
     webglContextRestored() {
