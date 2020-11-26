@@ -27,7 +27,10 @@ function buildVertex(scene) {
     src.push("attribute vec4 color;");
     src.push("attribute vec4 flags;");
     src.push("attribute vec4 flags2;");
-    src.push("attribute vec3 offset;");
+
+    if (scene.enableOffsets) {
+        src.push("attribute vec3 offset;");
+    }
 
     src.push("uniform mat4 viewMatrix;");
     src.push("uniform mat4 projMatrix;");
@@ -91,7 +94,11 @@ function buildVertex(scene) {
     src.push("} else {");
 
     src.push("vec4 worldPosition = positionsDecodeMatrix * vec4(position, 1.0); ");
-    src.push("worldPosition.xyz = worldPosition.xyz + offset;");
+
+    if (scene.enableOffsets) {
+        src.push("worldPosition.xyz = worldPosition.xyz + offset;");
+    }
+
     src.push("vec4 viewPosition  = viewMatrix * worldPosition; ");
 
     src.push("vec4 worldNormal =  vec4(octDecode(normal.xy), 0.0); ");

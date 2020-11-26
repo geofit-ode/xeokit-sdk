@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>XKTLoaderPlugin - Configuring initial View using IFC Metadata</title>
+    <title>Viewer with enableOffsets configured false</title>
     <link href="css/styles.css" type="text/css" rel="stylesheet"/>
 
     <style>
@@ -18,34 +18,21 @@
 <body>
 <canvas id="myCanvas"></canvas>
 <div id="info">
-    <h1>XKTLoaderPlugin - Configuring initial View using IFC Metadata</h1>
+    <h1>Viewer with enableOffsets configured false</h1>
     <br>
-    <p>Loads an .xkt IFC model and JSON IFC metadata from the file system, then uses the metadata to reveal each building storey.</p><br>
+    <p>Nothing should move, since offsets are disabled.</p><br>
     <ul>
         <li>
             <div id="time">Loading JavaScript modules...</div>
         </li>
         <li>
             <a target="_other"
-               href="./../docs/class/src/viewer/Viewer.js~Viewer.html">Viewer</a>
-            - xeokit Viewer
-        </li>
-        <li>
-            <a target="_other"
-               href="./../docs/class/src/plugins/XKTLoaderPlugin/XKTLoaderPlugin.js~XKTLoaderPlugin.html">XKTLoaderPlugin</a>
-            - Loads model and IFC data from file system
-        </li>
-        <li>
-            <a target="_other"
                href="https://github.com/openBIMstandards/DataSetSchependomlaan">Model source</a>
-        </li>
-        <li>
-            <a target="_other"
-               href="https://github.com/xeokit/xeokit-sdk/wiki/Viewing-BIM-Models-Offline">User Guide</a>
         </li>
     </ul>
 </div>
 </body>
+
 <script type="module">
 
     //------------------------------------------------------------------------------------------------------------------
@@ -67,7 +54,7 @@
     const viewer = new Viewer({
         canvasId: "myCanvas",
         transparent: true,
-        enableOffsets: true
+        enableOffsets: false
     });
 
     const cameraControl = viewer.cameraControl;
