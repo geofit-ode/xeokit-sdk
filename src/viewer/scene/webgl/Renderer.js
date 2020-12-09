@@ -873,6 +873,21 @@ const Renderer = function (scene, options) {
 
             if (params.pickSurface) {
 
+                if (params.canvasPos) {
+
+                    //---------------------------------------------------------
+                    // TODO: Create pick projection matrix from camera
+                    //---------------------------------------------------------
+
+                    pickProjMatrix = scene.camera.projMatrix;
+
+                } else {
+
+                    // Picking with arbitrary World-space ray
+
+                    pickProjMatrix = createSurfacePickProjMatrix(origin, pickable.aabb, tempMat4a);
+                }
+
                 if (pickable.canPickTriangle && pickable.canPickTriangle()) {
                     pickTriangle(pickable, canvasX, canvasY, pickViewMatrix, pickProjMatrix, pickResult);
                     pickable.pickTriangleSurface(pickViewMatrix, pickProjMatrix, pickResult);
@@ -891,6 +906,41 @@ const Renderer = function (scene, options) {
             pickResult.entity = pickedEntity;
 
             return pickResult;
+        };
+    })();
+
+    const createSurfacePickProjMatrix = (function () {
+
+        const tempVec3a = math.vec3();
+        const tempVec3b = math.vec3();
+        const tempOOBB3 = math.OBB3();
+
+        return function (origin, aabb, projMatrix) {
+
+            const obb = math.AABB3ToOBB3(aabb, tempOOBB3);
+            const p = tempVec3a;
+            const vec = tempVec3b;
+
+            let near = math.MAX_DOUBLE;
+            let far = math.MIN_DOUBLE;
+
+            for (let i = 0, len = obb.length; i < len; i += 4) {
+                p[0] = obb[i];
+                p[1] = obb[i + 1];
+                p[2] = obb[i + 2];
+                const dist = Math.abs(math.lenVec3(math.subVec3(origin, p, vec)));
+                if (dist < near) {
+                    near = dist;
+                }
+                if (dist > far) {
+                    far = dist;
+                }
+            }
+            console.log(near + ", " + far);
+            //math.frustumMat4(-1, 1, -1, 1, near, near+1000, projMatrix);
+            math.identityMat4(projMatrix);
+            math.frustumMat4(-1, 1, -1, 1, near, far, projMatrix);
+            return projMatrix;
         };
     })();
 
