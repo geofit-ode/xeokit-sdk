@@ -10,6 +10,7 @@ import {TrianglesBatchingDepthRenderer} from "./renderers/TrianglesBatchingDepth
 import {TrianglesBatchingNormalsRenderer} from "./renderers/TrianglesBatchingNormalsRenderer.js";
 import {TrianglesBatchingShadowRenderer} from "./renderers/TrianglesBatchingShadowRenderer.js";
 import {TrianglesBatchingColorQualityRenderer} from "./renderers/TrianglesBatchingColorQualityRenderer.js";
+import {TrianglesBatchingPickVertexRenderer} from "./renderers/TrianglesBatchingPickVertexRenderer.js";
 
 /**
  * @private
@@ -68,6 +69,10 @@ class TrianglesBatchingRenderers {
         if (this._pickNormalsRenderer && this._pickNormalsRenderer.getValid() === false) {
             this._pickNormalsRenderer.destroy();
             this._pickNormalsRenderer = null;
+        }
+        if (this._pickVertexRenderer && this._pickVertexRenderer.getValid() === false) {
+            this._pickVertexRenderer.destroy();
+            this._pickVertexRenderer = null;
         }
         if (this._occlusionRenderer && this._occlusionRenderer.getValid() === false) {
             this._occlusionRenderer.destroy();
@@ -156,6 +161,13 @@ class TrianglesBatchingRenderers {
         return this._pickNormalsRenderer;
     }
 
+    get pickVertexRenderer() {
+        if (!this._pickVertexRenderer) {
+            this._pickVertexRenderer = new TrianglesBatchingPickVertexRenderer(this._scene);
+        }
+        return this._pickVertexRenderer;
+    }
+
     get pickDepthRenderer() {
         if (!this._pickDepthRenderer) {
             this._pickDepthRenderer = new TrianglesBatchingPickDepthRenderer(this._scene);
@@ -213,6 +225,9 @@ class TrianglesBatchingRenderers {
         }
         if (this._pickNormalsRenderer) {
             this._pickNormalsRenderer.destroy();
+        }
+        if (this._pickVertexRenderer) {
+            this._pickVertexRenderer.destroy();
         }
         if (this._occlusionRenderer) {
             this._occlusionRenderer.destroy();

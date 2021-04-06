@@ -2578,6 +2578,21 @@ class PerformanceModel extends Component {
         }
     }
 
+    /**
+     * Called by PerformanceMesh.drawPickVertex()
+     * @private
+     */
+    drawPickVertex(frameCtx, axis) {
+        if (this.numVisibleLayerPortions === 0) {
+            return;
+        }
+        const renderFlags = this.renderFlags;
+        for (let i = 0, len = renderFlags.visibleLayers.length; i < len; i++) {
+            const layerIndex = renderFlags.visibleLayers[i];
+            this._layerList[layerIndex].drawPickVertex(renderFlags, frameCtx, axis);
+        }
+    }
+
     //------------------------------------------------------------------------------------------------------------------
     // Component members
     //------------------------------------------------------------------------------------------------------------------

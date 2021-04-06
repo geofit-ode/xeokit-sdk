@@ -38,6 +38,10 @@ const Renderer = function (scene, options) {
     const occlusionBuffer2 = new RenderBuffer(canvas, gl);
 
     const pickBuffer = new RenderBuffer(canvas, gl);
+
+    const pickVertexBuffer = new RenderBuffer(canvas, gl, {
+        //size: [255, 255]
+    });
     const snapshotBuffer = new RenderBuffer(canvas, gl);
 
     let snapshotBound = false;
@@ -68,6 +72,7 @@ const Renderer = function (scene, options) {
     this.webglContextRestored = function (gl) {
 
         pickBuffer.webglContextRestored(gl);
+        pickVertexBuffer.webglContextRestored(gl);
         snapshotBuffer.webglContextRestored(gl);
         saoDepthBuffer.webglContextRestored(gl);
         occlusionBuffer1.webglContextRestored(gl);
@@ -767,9 +772,7 @@ const Renderer = function (scene, options) {
             frameStats.useProgram = frameCtx.useProgram;
             frameStats.bindTexture = frameCtx.bindTexture;
             frameStats.bindArray = frameCtx.bindArray;
-
-            const numTextureUnits = WEBGL_INFO.MAX_TEXTURE_UNITS;
-            for (let ii = 0; ii < numTextureUnits; ii++) {
+            for (let ii = 0; ii < frameCtx.textureUnit; ii++) {
                 gl.activeTexture(gl.TEXTURE0 + ii);
             }
             gl.bindTexture(gl.TEXTURE_CUBE_MAP, null);
@@ -864,6 +867,14 @@ const Renderer = function (scene, options) {
                 canvasY = canvas.clientHeight * 0.5;
             }
 
+            if (params.pickVertex) {
+                const viewPos = pickVertex(canvasX, canvasY, pickViewMatrix, pickProjMatrix, params);
+                if (viewPos[2] !== 0) {
+                    pickResult.viewPos = viewPos;
+                }
+                return pickResult;
+            }
+
             pickBuffer.bind();
 
             const pickable = pickPickable(canvasX, canvasY, pickViewMatrix, pickProjMatrix, params);
@@ -907,6 +918,68 @@ const Renderer = function (scene, options) {
             return pickResult;
         };
     })();
+
+    function pickVertex(canvasX, canvasY, pickViewMatrix, pickProjMatrix, params) {
+
+        const includeEntityIds = params.includeEntityIds;
+        const excludeEntityIds = params.excludeEntityIds;
+        const pickedViewPos = math.vec3();
+
+        //pickVertexBuffer.bind();
+
+        gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
+
+        gl.clearColor(0, 0, 0, 0);
+        gl.enable(gl.DEPTH_TEST);
+        gl.disable(gl.CULL_FACE);
+        gl.disable(gl.BLEND);
+        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+        for (let axis = 0; axis < 2; axis++) {
+
+            frameCtx.reset();
+            frameCtx.backfaces = true;
+            frameCtx.frontface = true; // "ccw"
+            frameCtx.pickViewMatrix = pickViewMatrix;
+            frameCtx.pickProjMatrix = pickProjMatrix;
+            frameCtx.pickInvisible = !!params.pickInvisible;
+
+            for (let type in drawableTypeInfo) {
+                if (drawableTypeInfo.hasOwnProperty(type)) {
+
+                    const drawableInfo = drawableTypeInfo[type];
+                    const drawableList = drawableInfo.drawableList;
+
+                    for (let i = 0, len = drawableList.length; i < len; i++) {
+
+                        const drawable = drawableList[i];
+
+                        if (!drawable.drawPickVertex || drawable.culled === true || (params.pickInvisible !== true && drawable.visible === false) || drawable.pickable === false) {
+                            continue;
+                        }
+                        if (includeEntityIds && !includeEntityIds[drawable.id]) {
+                            continue;
+                        }
+                        if (excludeEntityIds && excludeEntityIds[drawable.id]) {
+                            continue;
+                        }
+
+                        drawable.drawPickVertex(frameCtx, axis);
+                    }
+                }
+            }
+
+            // const pix = pickVertexBuffer.read(Math.round(canvasX), Math.round(canvasY));
+            //
+            // const value = unpackFloat(pix);
+            //
+            // pickedViewPos[axis] = value;
+        }
+
+        //      pickVertexBuffer.unbind();
+
+        return pickedViewPos;
+    }
 
     function pickPickable(canvasX, canvasY, pickViewMatrix, pickProjMatrix, params) {
 
@@ -1032,7 +1105,7 @@ const Renderer = function (scene, options) {
 
             const pix = pickBuffer.read(Math.round(canvasX), Math.round(canvasY));
 
-            const screenZ = unpackDepth(pix); // Get screen-space Z at the given canvas coords
+            const screenZ = unpackFloat(pix); // Get screen-space Z at the given canvas coords
 
             // Calculate clip space coordinates, which will be in range of x=[-1..1] and y=[-1..1], with y=(+1) at top
             const x = (canvasX - canvas.width / 2) / (canvas.width / 2);
@@ -1078,7 +1151,7 @@ const Renderer = function (scene, options) {
         }
     })();
 
-    function unpackDepth(depthZ) {
+    function unpackFloat(depthZ) {
         const vec = [depthZ[0] / 256.0, depthZ[1] / 256.0, depthZ[2] / 256.0, depthZ[3] / 256.0];
         const bitShift = [1.0 / (256.0 * 256.0 * 256.0), 1.0 / (256.0 * 256.0), 1.0 / 256.0, 1.0];
         return math.dotVec4(vec, bitShift);
@@ -1271,6 +1344,7 @@ const Renderer = function (scene, options) {
         drawables = {};
 
         pickBuffer.destroy();
+        pickVertexBuffer.destroy();
         snapshotBuffer.destroy();
         saoDepthBuffer.destroy();
         occlusionBuffer1.destroy();

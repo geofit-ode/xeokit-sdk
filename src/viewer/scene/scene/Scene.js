@@ -1173,7 +1173,7 @@ class Scene extends Component {
         this._pbrEnabled = !!pbrEnabled;
         this.glRedraw();
     }
-    
+
     /**
      * Sets whether quality rendering is enabled.
      *
@@ -1184,7 +1184,7 @@ class Scene extends Component {
     get pbrEnabled() {
         return this._pbrEnabled;
     }
-    
+
     /**
      * Performs an occlusion test on all {@link Marker}s in this {@link Scene}.
      *
@@ -2009,6 +2009,7 @@ class Scene extends Component {
      * @param {*} params Picking parameters.
      * @param {Boolean} [params.pickSurface=false] Whether to find the picked position on the surface of the Entity.
      * @param {Boolean} [params.pickSurfaceNormal=false] Whether to find the picked normal on the surface of the Entity. Only works if ````pickSurface```` is given.
+     * @param {Boolean} [params.pickVertex=false] Whether to find the picked vertex position.
      * @param {Number[]} [params.canvasPos] Canvas-space coordinates. When ray-picking, this will override the **origin** and ** direction** parameters and will cause the ray to be fired through the canvas at this position, directly along the negative View-space Z-axis.
      * @param {Number[]} [params.origin] World-space ray origin when ray-picking. Ignored when canvasPos given.
      * @param {Number[]} [params.direction] World-space ray direction when ray-picking. Also indicates the length of the ray. Ignored when canvasPos given.

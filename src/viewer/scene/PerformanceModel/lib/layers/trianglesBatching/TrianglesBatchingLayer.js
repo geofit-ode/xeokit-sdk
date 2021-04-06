@@ -968,6 +968,16 @@ class TrianglesBatchingLayer {
         }
     }
 
+    drawPickVertex(renderFlags, frameCtx, axis) {
+        if (this._numCulledLayerPortions === this._numPortions || this._numVisibleLayerPortions === 0) {
+            return;
+        }
+//        this._updateBackfaceCull(renderFlags, frameCtx);
+        if (this._batchingRenderers.pickVertexRenderer) {
+            this._batchingRenderers.pickVertexRenderer.drawLayer(frameCtx, this, RENDER_PASSES.PICK, axis);
+        }
+    }
+
     destroy() {
         const state = this._state;
         if (state.positionsBuf) {
