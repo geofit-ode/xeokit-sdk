@@ -11,7 +11,7 @@ jobs:
           command: |
             npm install
       
-      - run: 
-          name: run our tests
-          command: |
-            npm run test
+      # - run: 
+      #     name: run our tests
+      #     command: |
+      #       npm run test
