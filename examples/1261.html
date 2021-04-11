@@ -170,6 +170,7 @@
     viewer.scene.highlightMaterial.fillAlpha = 0.3;
     viewer.scene.highlightMaterial.edgeColor = [1, 1, 0];
 
+
     //------------------------------------------------------------------------------------------------------------------
     // Create a NavCube
     //------------------------------------------------------------------------------------------------------------------
@@ -213,6 +214,10 @@
     model.on("loaded", function () {
         const t1 = performance.now();
         document.getElementById("time").innerHTML = "Model loaded in " + Math.floor(t1 - t0) / 1000.0 + " seconds<br>Objects: " + model.numEntities;
+    });
+     
+    model.on("loaded", function () {
+        viewer.cameraFlight.flyTo(model);
     });
 
     //------------------------------------------------------------------------------------------------------------------
