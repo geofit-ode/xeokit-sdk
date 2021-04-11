@@ -210,6 +210,10 @@
         document.getElementById("time").innerHTML = "Model loaded in " + Math.floor(t1 - t0) + " milliseconds<br>Objects: " + model.numEntities;
     });
 
+    model.on("loaded", function () {
+        viewer.cameraFlight.flyTo(model);
+    });
+    
     //------------------------------------------------------------------------------------------------------------------
     // Mouse over Entities to highlight them
     //------------------------------------------------------------------------------------------------------------------
