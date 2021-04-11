@@ -35,7 +35,7 @@
             -ms-user-select: none;
             -moz-user-select: none;
             -webkit-user-select: none;
-            width: 550px;
+            width: 250px;
         }
 
         #treeViewContainer ul {
@@ -45,7 +45,7 @@
 
         #treeViewContainer ul li {
             position: relative;
-            width: 500px;
+            width: 200px;
 
         }
 
@@ -787,6 +787,10 @@
         document.getElementById("time").innerHTML = "Model loaded in " + Math.floor(t1 - t0) / 1000.0 + " seconds<br>Objects: " + model.numEntities;
     });
 
+    model.on("loaded", function () {
+        viewer.cameraFlight.flyTo(model);
+    });
+    
     //------------------------------------------------------------------------------------------------------------------
     // Mouse over entities to highlight them
     //------------------------------------------------------------------------------------------------------------------
