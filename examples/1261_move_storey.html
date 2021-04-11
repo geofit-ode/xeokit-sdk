@@ -49,6 +49,7 @@
 
     import {Viewer} from "../src/viewer/Viewer.js";
     import {XKTLoaderPlugin} from "../src/plugins/XKTLoaderPlugin/XKTLoaderPlugin.js";
+    import {NavCubePlugin} from "../src/plugins/NavCubePlugin/NavCubePlugin.js";
     import {math} from "../src/viewer/scene/math/math.js";
     import {VBOGeometry} from "../src/viewer/scene/geometry/VBOGeometry.js";
     import {buildGridGeometry} from "../src/viewer/scene/geometry/builders/buildGridGeometry.js";
@@ -90,7 +91,20 @@
     sao.kernelRadius = 100;
 
     cameraControl.followPointer = true;
+    
+    //------------------------------------------------------------------------------------------------------------------
+    // Create a NavCube
+    //------------------------------------------------------------------------------------------------------------------
 
+    new NavCubePlugin(viewer, {
+        canvasId: "myNavCubeCanvas",
+        visible: true,
+        size: 250,
+        alignment: "bottomRight",
+        bottomMargin: 100,
+        rightMargin: 10
+    });
+    
     //------------------------------------------------------------------------------------------------------------------
     // Create a ground plane
     //------------------------------------------------------------------------------------------------------------------
