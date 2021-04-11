@@ -121,7 +121,11 @@
         saoEnabled: true,
         edges: true
     });
-
+  
+    model.on("loaded", function () {
+        viewer.cameraFlight.flyTo(model);
+    });
+    
     const t0 = performance.now();
 
     document.getElementById("time").innerHTML = "Loading model...";
@@ -137,10 +141,10 @@
             const t1 = performance.now();
             document.getElementById("time").innerHTML = "Model loaded in " + Math.floor(t1 - t0) / 1000.0 + " seconds<br>Objects: " + model.numEntities;
 
-            moveObject("0u4wgLe6n0ABVaiXyikbkA", [-25, -3, 0]);
-            moveObject("0wPqxf9KX0nPDjgzD8mXwD", [-25, -6, 25]);
-            moveObject("2Hyat1fsPEGfyYPyim12A1", [0, -9, 25]);
-            moveObject("0oaSdYqubDuuJF4k9AqHjC", [0, -12, -25]);
+            moveObject("10SSJxzif6EQPRrvp_CloG", [-25, -3, 0]);
+            moveObject("10SSJxzif6EQPRrvp_ClFd", [-25, -6, 25]);
+            moveObject("10SSJxzif6EQPRrvp_D1w8", [0, -9, 25]);
+            moveObject("10SSJxzif6EQPRrvp_D1pH", [0, -12, -25]);
 
         }, 500);
     });
